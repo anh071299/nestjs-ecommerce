@@ -9,6 +9,8 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
+    env_file:
+      - .env
     environment:
       NODE_ENV: developments
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ecommerce
@@ -43,3 +45,906 @@ services:
 volumes:
   postgres_data:
   redis_data:
+
+
+# Đây là file **`docker-compose.yml`** dùng để chạy cả một hệ thống Ecommerce gồm:
+
+# ```text
+#              Docker Compose
+#                   │
+#        ┌──────────┼──────────┐
+#        ↓          ↓          ↓
+#       app      postgres     redis
+#        │          │          │
+#     NestJS     Database     Cache
+#      :3000       :5432      :6379
+# ```
+
+# Điểm quan trọng: **3 service này nằm trong cùng một Docker network**, nên `app` có thể gọi PostgreSQL bằng `postgres:5432` và Redis bằng `redis:6379`.
+
+# ---
+
+# # 1. `services`
+
+# ```yaml
+# services:
+# ```
+
+# `services` định nghĩa **các container/service mà Docker Compose cần chạy**.
+
+# Ở đây có 3 service:
+
+# ```yaml
+# services:
+#   app:
+#   postgres:
+#   redis:
+# ```
+
+# Tức là:
+
+# ```text
+# app       → Backend NestJS
+# postgres  → PostgreSQL
+# redis     → Redis
+# ```
+
+# ---
+
+# # 2. Service `app`
+
+# ```yaml
+# app:
+#   build:
+#     context: .
+#     dockerfile: Dockerfile
+# ```
+
+# ## `build`
+
+# Nói với Docker:
+
+# > Hãy tự build image cho service `app`.
+
+# ### `context: .`
+
+# ```yaml
+# context: .
+# ```
+
+# Dấu `.` nghĩa là **thư mục hiện tại**.
+
+# Ví dụ project:
+
+# ```text
+# ecommerce/
+# ├── Dockerfile
+# ├── docker-compose.yml
+# ├── package.json
+# ├── src/
+# └── prisma/
+# ```
+
+# thì:
+
+# ```yaml
+# context: .
+# ```
+
+# nghĩa là Docker lấy thư mục:
+
+# ```text
+# ecommerce/
+# ```
+
+# làm **build context**.
+
+# ---
+
+# ### `dockerfile: Dockerfile`
+
+# ```yaml
+# dockerfile: Dockerfile
+# ```
+
+# Nói rằng sử dụng:
+
+# ```text
+# ./Dockerfile
+# ```
+
+# để build image.
+
+# Tương đương:
+
+# ```bash
+# docker build -f Dockerfile .
+# ```
+
+# ---
+
+# # 3. `container_name`
+
+# ```yaml
+# container_name: ecommerce-api
+# ```
+
+# Đặt tên container.
+
+# Nếu không chỉ định, Docker Compose có thể tạo tên kiểu:
+
+# ```text
+# project-app-1
+# ```
+
+# Ở đây bạn muốn tên:
+
+# ```text
+# ecommerce-api
+# ```
+
+# Sau đó có thể:
+
+# ```bash
+# docker ps
+# ```
+
+# và thấy:
+
+# ```text
+# ecommerce-api
+# ecommerce-postgres
+# ecommerce-redis
+# ```
+
+# ---
+
+# # 4. `ports`
+
+# ```yaml
+# ports:
+#   - "3000:3000"
+# ```
+
+# Đây là **port mapping**:
+
+# ```text
+# HOST : CONTAINER
+#  3000 : 3000
+# ```
+
+# Tức là:
+
+# ```text
+# Browser
+#    │
+#    │ localhost:3000
+#    ↓
+# Máy thật :3000
+#    │
+#    ↓
+# Container app :3000
+#    │
+#    ↓
+# NestJS
+# ```
+
+# Vì vậy bạn có thể gọi:
+
+# ```text
+# http://localhost:3000
+# ```
+
+# ---
+
+# # 5. `volumes` của app
+
+# ```yaml
+# volumes:
+#   - .:/app
+#   - /app/node_modules
+# ```
+
+# Đây là phần **rất quan trọng khi development**.
+
+# ## `. : /app`
+
+# ```yaml
+# - .:/app
+# ```
+
+# Nghĩa là:
+
+# ```text
+# Máy thật                 Container
+# ─────────                ─────────
+# ./                       /app
+# ```
+
+# Ví dụ bạn sửa:
+
+# ```text
+# src/user/user.service.ts
+# ```
+
+# trên máy thật:
+
+# ```text
+# project/
+# └── src/
+#     └── user/
+#         └── user.service.ts
+# ```
+
+# thì container cũng nhìn thấy thay đổi tại:
+
+# ```text
+# /app/src/user/user.service.ts
+# ```
+
+# Điều này rất phù hợp với:
+
+# ```bash
+# npm run start:dev
+# ```
+
+# vì NestJS có thể watch source code.
+
+# ---
+
+# ## `/app/node_modules`
+
+# ```yaml
+# - /app/node_modules
+# ```
+
+# Đây là **anonymous volume**.
+
+# Mục đích chính là tránh việc:
+
+# ```text
+# ./:/app
+# ```
+
+# ghi đè `node_modules` trong container.
+
+# Hiểu đơn giản:
+
+# ```text
+# Máy host
+# project/
+# ├── src/
+# ├── package.json
+# └── ❌ node_modules
+
+#              ↓ .:/app
+
+# Container
+# /app/
+# ├── src/
+# ├── package.json
+# └── node_modules/  ← giữ node_modules của container
+# ```
+
+# Nếu không có:
+
+# ```yaml
+# - /app/node_modules
+# ```
+
+# thì `.:/app` có thể làm `node_modules` trong image/container bị che bởi thư mục project trên host.
+
+# ---
+
+# # 6. `environment`
+
+# ```yaml
+# environment:
+#   NODE_ENV: developments
+#   DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ecommerce
+#   REDIS_HOST: redis
+#   REDIS_PORT: 6379
+# ```
+
+# Đây là **environment variables** được truyền vào container `app`.
+
+# Trong NestJS/Node.js có thể đọc:
+
+# ```typescript
+# process.env.DATABASE_URL
+# ```
+
+# ---
+
+# ## `NODE_ENV`
+
+# Bạn đang viết:
+
+# ```yaml
+# NODE_ENV: developments
+# ```
+
+# Thông thường nên là:
+
+# ```yaml
+# NODE_ENV: development
+# ```
+
+# `development` mới là giá trị convention phổ biến.
+
+# ---
+
+# # 7. `DATABASE_URL`
+
+# ```yaml
+# DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ecommerce
+# ```
+
+# Đây là connection string PostgreSQL.
+
+# Tách ra:
+
+# ```text
+# postgresql://
+# postgres
+# :
+# postgres
+# @
+# postgres
+# :
+# 5432
+# /
+# ecommerce
+# ```
+
+# Tương ứng:
+
+# ```text
+# Protocol    = postgresql
+# Username    = postgres
+# Password    = postgres
+# Host        = postgres
+# Port        = 5432
+# Database    = ecommerce
+# ```
+
+# Điểm **cực kỳ quan trọng**:
+
+# ```text
+# @postgres
+# ```
+
+# `postgres` ở đây **không phải localhost**.
+
+# Nó chính là **tên service Docker Compose**:
+
+# ```yaml
+# services:
+#   postgres:
+# ```
+
+# Docker Compose có DNS nội bộ:
+
+# ```text
+# app
+#  │
+#  │ postgres:5432
+#  ↓
+# postgres container
+# ```
+
+# Do đó trong container `app`:
+
+# ```text
+# postgres:5432
+# ```
+
+# đúng.
+
+# Không nên:
+
+# ```text
+# localhost:5432
+# ```
+
+# vì:
+
+# ```text
+# localhost
+# ```
+
+# bên trong `app` chính là **container app**, không phải PostgreSQL.
+
+# ---
+
+# # 8. Redis
+
+# ```yaml
+# REDIS_HOST: redis
+# REDIS_PORT: 6379
+# ```
+
+# Tương tự:
+
+# ```text
+# app
+#  │
+#  │ redis:6379
+#  ↓
+# redis container
+# ```
+
+# `redis` chính là:
+
+# ```yaml
+# services:
+#   redis:
+# ```
+
+# ---
+
+# # 9. `depends_on`
+
+# ```yaml
+# depends_on:
+#   - postgres
+#   - redis
+# ```
+
+# Nói với Compose:
+
+# > app phụ thuộc vào postgres và redis.
+
+# Khi chạy:
+
+# ```bash
+# docker compose up
+# ```
+
+# Compose sẽ biết `app` cần `postgres` và `redis`.
+
+# Flow:
+
+# ```text
+# postgres ──┐
+#            ├──→ app
+# redis ─────┘
+# ```
+
+# ### Nhưng có một điểm cần nhớ
+
+# `depends_on` **không đảm bảo database đã READY để nhận connection**.
+
+# Nó chủ yếu đảm bảo thứ tự khởi động service.
+
+# Ví dụ:
+
+# ```text
+# Postgres container START
+#         ↓
+# Postgres đang initialization
+#         ↓
+# App START
+#         ↓
+# App connect PostgreSQL
+#         ↓
+# ❌ PostgreSQL chưa ready
+# ```
+
+# Trong production thường dùng **healthcheck + condition** hoặc cơ chế retry trong application.
+
+# ---
+
+# # 10. Service `postgres`
+
+# ```yaml
+# postgres:
+#   image: postgres:16-alpine
+# ```
+
+# Khác với `app`.
+
+# `app` dùng:
+
+# ```yaml
+# build:
+# ```
+
+# còn PostgreSQL dùng:
+
+# ```yaml
+# image:
+# ```
+
+# Tức là không cần tự viết Dockerfile cho PostgreSQL.
+
+# Docker sẽ lấy image:
+
+# ```text
+# postgres:16-alpine
+# ```
+
+# ---
+
+# # 11. `restart`
+
+# ```yaml
+# restart: unless-stopped
+# ```
+
+# Nghĩa là Docker sẽ cố restart PostgreSQL nếu container bị dừng/crash.
+
+# Ví dụ:
+
+# ```text
+# Postgres crash
+#       ↓
+# Docker restart
+#       ↓
+# Postgres chạy lại
+# ```
+
+# Nhưng nếu bạn chủ động:
+
+# ```bash
+# docker stop ecommerce-postgres
+# ```
+
+# thì nó sẽ không tự restart liên tục cho đến khi bạn start lại.
+
+# ---
+
+# # 12. PostgreSQL environment
+
+# ```yaml
+# environment:
+#   POSTGRES_USER: postgres
+#   POSTGRES_PASSWORD: postgres
+#   POSTGRES_DB: ecommerce
+# ```
+
+# PostgreSQL image sử dụng các biến này để khởi tạo database.
+
+# Kết quả:
+
+# ```text
+# Database server
+# │
+# ├── User: postgres
+# ├── Password: postgres
+# └── Database: ecommerce
+# ```
+
+# ---
+
+# # 13. PostgreSQL port
+
+# ```yaml
+# ports:
+#   - "5432:5432"
+# ```
+
+# Cho phép máy thật truy cập PostgreSQL:
+
+# ```text
+# DBeaver
+#    │
+#    │ localhost:5432
+#    ↓
+# Host :5432
+#    ↓
+# PostgreSQL container :5432
+# ```
+
+# Do đó bạn có thể dùng DBeaver:
+
+# ```text
+# Host:     localhost
+# Port:     5432
+# Username: postgres
+# Password: postgres
+# Database: ecommerce
+# ```
+
+# Nhưng **app không cần dùng localhost**.
+
+# App dùng:
+
+# ```text
+# postgres:5432
+# ```
+
+# ---
+
+# # 14. PostgreSQL volume
+
+# ```yaml
+# volumes:
+#   - postgres_data:/var/lib/postgresql/data
+# ```
+
+# Đây là **persistent storage**.
+
+# PostgreSQL lưu data tại:
+
+# ```text
+# /var/lib/postgresql/data
+# ```
+
+# Docker map nó vào volume:
+
+# ```text
+# postgres_data
+# ```
+
+# Flow:
+
+# ```text
+# PostgreSQL container
+#         │
+#         ↓
+# /var/lib/postgresql/data
+#         │
+#         ↓
+# postgres_data volume
+# ```
+
+# ### Tại sao cần?
+
+# Nếu không có volume:
+
+# ```bash
+# docker compose down
+# ```
+
+# xóa container → có nguy cơ mất database data.
+
+# Có volume:
+
+# ```text
+# Container bị xóa
+#        ↓
+# postgres_data vẫn còn
+#        ↓
+# Container mới mount lại
+#        ↓
+# Data vẫn còn
+# ```
+
+# Đây là lý do database **không nên chỉ lưu data bên trong container filesystem**.
+
+# ---
+
+# # 15. Service `redis`
+
+# ```yaml
+# redis:
+#   image: redis:7-alpine
+# ```
+
+# Dùng Redis version 7 trên Alpine.
+
+# ```text
+# redis container
+#     │
+#     └── Redis server
+#          └── :6379
+# ```
+
+# ---
+
+# # 16. Redis port
+
+# ```yaml
+# ports:
+#   - "6379:6379"
+# ```
+
+# Cho phép máy host truy cập:
+
+# ```text
+# localhost:6379
+# ```
+
+# Ví dụ Redis CLI hoặc tool trên máy thật có thể connect.
+
+# Nhưng app:
+
+# ```yaml
+# REDIS_HOST: redis
+# ```
+
+# nên app connect:
+
+# ```text
+# redis:6379
+# ```
+
+# ---
+
+# # 17. Redis volume
+
+# ```yaml
+# volumes:
+#   - redis_data:/data
+# ```
+
+# Redis mặc định lưu dữ liệu/persistence liên quan trong:
+
+# ```text
+# /data
+# ```
+
+# Docker mount:
+
+# ```text
+# /data
+#    ↓
+# redis_data
+# ```
+
+# Tuy nhiên với Redis dùng thuần **cache**, nhiều hệ thống không cần persistent volume vì cache có thể được rebuild.
+
+# Nếu Redis của bạn lưu dữ liệu cần giữ lại, volume có ý nghĩa hơn.
+
+# ---
+
+# # 18. Phần cuối
+
+# ```yaml
+# volumes:
+#   postgres_data:
+#   redis_data:
+# ```
+
+# Đây là nơi **khai báo named volumes**.
+
+# Có:
+
+# ```text
+# postgres_data
+# redis_data
+# ```
+
+# Sau đó service sử dụng chúng:
+
+# ```yaml
+# postgres:
+#   volumes:
+#     - postgres_data:/var/lib/postgresql/data
+# ```
+
+# và:
+
+# ```yaml
+# redis:
+#   volumes:
+#     - redis_data:/data
+# ```
+
+# ---
+
+# # 19. Toàn bộ architecture
+
+# Docker Compose của bạn thực chất tạo ra:
+
+# ```text
+#                      Docker Compose
+#                            │
+#               ┌────────────┼────────────┐
+#               │            │            │
+#               ↓            ↓            ↓
+#           ┌───────┐   ┌──────────┐   ┌───────┐
+#           │  app  │   │ postgres │   │ redis │
+#           │       │   │          │   │       │
+#           │NestJS │   │Postgres  │   │ Redis │
+#           │ :3000 │   │  :5432   │   │ :6379│
+#           └───┬───┘   └────┬─────┘   └───┬───┘
+#               │            │             │
+#               └────────────┼─────────────┘
+#                            │
+#                     Docker Network
+# ```
+
+# Các connection:
+
+# ```text
+# app
+#  │
+#  ├── DATABASE_URL
+#  │      ↓
+#  │   postgres:5432
+#  │
+#  └── REDIS_HOST
+#         ↓
+#      redis:6379
+# ```
+
+# Storage:
+
+# ```text
+# postgres
+#     │
+#     ↓
+# postgres_data
+
+# redis
+#     │
+#     ↓
+# redis_data
+# ```
+
+# Host access:
+
+# ```text
+# Browser ─────→ localhost:3000 ───→ app
+
+# DBeaver ─────→ localhost:5432 ───→ postgres
+
+# Redis CLI ───→ localhost:6379 ───→ redis
+# ```
+
+# ---
+
+# # 20. Khi chạy `docker compose up`
+
+# Bạn chỉ cần:
+
+# ```bash
+# docker compose up
+# ```
+
+# Compose sẽ tạo:
+
+# ```text
+# 1. postgres container
+# 2. redis container
+# 3. app container
+# ```
+
+# Nếu image `app` chưa có:
+
+# ```text
+# Dockerfile
+#     ↓
+# docker build
+#     ↓
+# app image
+#     ↓
+# app container
+# ```
+
+# Sau đó:
+
+# ```text
+# localhost:3000
+#        ↓
+#      NestJS
+#        ↓
+#  ┌─────┴─────┐
+#  ↓           ↓
+# PostgreSQL  Redis
+# ```
+
+# ### Một câu rất nên nhớ khi phỏng vấn
+
+# > **Docker Compose dùng `services` để định nghĩa các container, `build` để build image từ Dockerfile, `image` để dùng image có sẵn, `ports` để map port host → container, `volumes` để persist/share data, `environment` để truyền config và `depends_on` để khai báo dependency giữa các service.**
+
+# Với project Ecommerce của bạn, có thể nhớ đơn giản:
+
+# ```text
+# Docker Compose
+#       │
+#       ├── app       → NestJS API
+#       │      │
+#       │      ├── postgres:5432
+#       │      └── redis:6379
+#       │
+#       ├── postgres  → Database
+#       │      └── postgres_data
+#       │
+#       └── redis     → Cache
+#              └── redis_data
+# ```
+
+# **Đây chính là nền tảng để bước tiếp theo hiểu `Docker Network + Volume + Prisma`**, đặc biệt là tại sao Prisma trong `app` phải dùng `postgres:5432` chứ không phải `localhost:5432`.
