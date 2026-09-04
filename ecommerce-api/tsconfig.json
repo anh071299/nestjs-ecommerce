@@ -15,8 +15,10 @@
     "outDir": "./dist",
     "incremental": true,
     "skipLibCheck": true,
+    "resolveJsonModule": true,
     "strict": true,
     "strictPropertyInitialization": false,
     "types": ["vitest/globals", "node"]
-  }
+  },
+  "exclude": ["node_modules", "dist", "migrations"]
 }

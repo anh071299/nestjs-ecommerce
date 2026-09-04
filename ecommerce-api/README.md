@@ -142,6 +142,18 @@ Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 
 ---
 
+<!-- 1. Sửa prisma/contract.prisma
+             ↓
+2. npx prisma contract emit
+             ↓
+3. npx prisma migration plan --name xxx
+             ↓
+4. Review migration.ts
+             ↓
+5. npx prisma db migrate
+             ↓
+6. NestJS sử dụng Prisma 8 runtime -->
+
 # Phase 2 — User & Authentication
 
 ### Task 4: User model
