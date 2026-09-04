@@ -9,8 +9,8 @@ const user: User = {
   password: 'hashed',
   name: 'Alice',
   role: 'USER',
-  createdAt: {} as User['createdAt'],
-  updatedAt: {} as User['updatedAt'],
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
 };
 
 describe('UserService', () => {
@@ -45,7 +45,13 @@ describe('UserService', () => {
       password: user.password,
       name: user.name,
     });
-    expect(created).toEqual(user);
+    expect(created).toEqual({
+      id: user.id,
+      email: user.email,
+      password: user.password,
+      name: user.name,
+      role: user.role,
+    });
   });
 
   it('finds a user by id', async () => {

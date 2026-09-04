@@ -12,6 +12,6 @@ export class UserEntity {
     this.email = data.email;
     this.password = data.password;
     this.name = data.name;
-    this.role = data.role;
+    this.role = data.role as UserRole;
   }
 }

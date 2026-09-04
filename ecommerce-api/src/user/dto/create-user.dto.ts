@@ -1,27 +1,13 @@
-import {
-  IsEmail,
-  IsIn,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  MinLength,
-} from 'class-validator';
-import { USER_ROLES, type UserRole } from '../user.types.js';
+import { z } from 'zod';
+import { USER_ROLES } from '../user.types.js';
 
-export class CreateUserDto {
-  @IsEmail()
-  email: string;
+export const createUserSchema = z
+  .object({
+    email: z.email(),
+    password: z.string().min(8),
+    name: z.string().min(1),
+    role: z.enum(USER_ROLES).optional(),
+  })
+  .strict();
 
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(8)
-  password: string;
-
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @IsOptional()
-  @IsIn(USER_ROLES)
-  role?: UserRole;
-}
+export type CreateUserDto = z.infer<typeof createUserSchema>;

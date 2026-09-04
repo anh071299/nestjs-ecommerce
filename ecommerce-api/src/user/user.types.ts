@@ -1,6 +1,6 @@
-import type { FieldOutputTypes } from '../prisma/user.js';
+import type { User as PrismaUser } from "@prisma/client";
 
-export type User = FieldOutputTypes['public']['User'];
+export const USER_ROLES = ["USER", "ADMIN"] as const;
 
-export const USER_ROLES = ['USER', 'ADMIN'] as const;
+export type User = PrismaUser;
 export type UserRole = (typeof USER_ROLES)[number];

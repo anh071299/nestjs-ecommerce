@@ -4,7 +4,6 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { UserModule } from './user/user.module.js';
-import { ProductModule } from './product/product.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -19,7 +18,6 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       appSecret: process.env.OBSERVE_APP_SECRET || '',
       serviceId: 'ecommerce-api',
     }),
-    ProductModule,
   ],
   controllers: [AppController],
   providers: [AppService],

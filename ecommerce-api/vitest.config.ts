@@ -9,6 +9,5 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.spec.ts'],
-    setupFiles: ['./src/polyfill.ts'],
   },
 });
