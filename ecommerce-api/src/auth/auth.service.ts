@@ -1,12 +1,12 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UserService } from '../user/user.service.js';
-import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 
 const REFRESH_TOKEN_EXPIRATION_TIME = 7 * 24 * 60 * 60 * 1000;
-const ACCESS_TOKEN_EXPIRATION_TIME: JwtSignOptions['expiresIn'] = '1m';
+const ACCESS_TOKEN_EXPIRATION_TIME: JwtSignOptions['expiresIn'] = '15m';
 
 @Injectable()
 export class AuthService {
@@ -22,25 +22,15 @@ export class AuthService {
         if (!isPasswordValid) {
             throw new UnauthorizedException('Invalid credentials');
         }
-
-        const rawRefreshToken = crypto.randomBytes(32).toString('hex');
-        const hashedRefreshToken = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
         const accessToken = await this.jwtService.signAsync({ sub: user.id, email: user.email }, { expiresIn: ACCESS_TOKEN_EXPIRATION_TIME });
-        const refreshToken = await this.prisma.refreshToken.create({
-            data: {
-                userId: user.id,
-                token: hashedRefreshToken,
-                expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRATION_TIME),
-                isRevoked: false,
-            },
-        }); 
+        const refreshToken = await this.createRefreshToken(user.id);
 
    
         if (!accessToken || !refreshToken) {
             throw new Error('Failed to create access or refresh token');
         }
 
-        return { accessToken, refreshToken: rawRefreshToken };
+        return { accessToken, refreshToken: refreshToken.token };
     }
 
     async refreshToken(refreshToken: string) {
@@ -70,6 +60,17 @@ export class AuthService {
           throw new UnauthorizedException('User not found');
         }
       
+        // Revoke the old refresh token
+        await this.prisma.refreshToken.update({
+            where: { id: refreshTokenEntity.id },
+            data: { isRevoked: true },
+        });
+
+        // Create a new refresh token
+        const newRefreshToken = await this.createRefreshToken(user.id);
+
+
+        // Create a new access token
         const accessToken = await this.jwtService.signAsync(
           {
             sub: user.id,
@@ -79,7 +80,28 @@ export class AuthService {
             expiresIn: ACCESS_TOKEN_EXPIRATION_TIME,
           },
         );       
-        return { accessToken };
+        return { accessToken, refreshToken: newRefreshToken.token };
   
+    }
+
+    async logout(userId: string) {
+        await this.prisma.refreshToken.updateMany({
+            where: { userId },
+            data: { isRevoked: true },
+        });
+        return { message: 'Logged out successfully' };
+    }
+
+    async createRefreshToken(userId: string) {
+        const rawRefreshToken = crypto.randomBytes(32).toString('hex');
+        const hashedRefreshToken = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
+        await this.prisma.refreshToken.create({
+            data: { userId, token: hashedRefreshToken, expiresAt: new Date(Date.now() + REFRESH_TOKEN_EXPIRATION_TIME), isRevoked: false },
+        });
+
+        return {
+            token: rawRefreshToken,
+            hash: hashedRefreshToken,
+        }
     }
 }

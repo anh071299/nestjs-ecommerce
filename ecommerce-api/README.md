@@ -256,7 +256,36 @@ Client tiếp tục gọi API
 
 * [ ] Store token/session
 * [ ] Token rotation
+Login
+ ↓
+Refresh Token A
+ ↓
+/auth/refresh
+ ↓
+A → revoke ❌
+ ↓
+Access Token mới
+Refresh Token B → cấp mới
+
 * [ ] Logout/revoke
+
+                    ┌── Access JWT (5–15m)
+Login ──────────────┤
+                    └── Refresh Token (7–30d)
+                            │
+                            ↓
+                       Hash → DB
+
+Refresh:
+old RT → revoke
+new RT → create
+
+Logout:
+RT → revoke
+
+Access JWT:
+không cần revoke
+→ tự expire sau 5–15m
 
 ---
 

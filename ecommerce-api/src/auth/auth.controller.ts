@@ -26,6 +26,11 @@ export class AuthController {
     @Post('refresh-token')
     async refreshToken(@Body({ schema: refreshTokenSchema }) refreshTokenDto: RefreshTokenDto) {
         return await this.authService.refreshToken(refreshTokenDto.refreshToken);
-     
+    }
+
+    @Post('logout')
+    @UseGuards(JwtGuard)
+    async logout(@CurrentUser() user: UserEntity) {
+        return await this.authService.logout(user.id);
     }
 }
