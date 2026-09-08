@@ -12,7 +12,7 @@ export class UserRepository {
   }
 
   findById(id: string): Promise<User | null> {
-    return this.prisma.user.findUnique({ where: { id } });
+    return this.prisma.user.findFirst({ where: { id } });
   }
 
   findByEmail(email: string): Promise<User | null> {

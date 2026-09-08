@@ -223,6 +223,37 @@ POST /auth/logout
 ```
 
 * [ ] Refresh token
+
+Access Token hết hạn
+        │
+        ▼
+API trả 401
+        │
+        ▼
+Client gọi /auth/refresh-token
+        │
+        │ refreshToken
+        ▼
+SHA-256(refreshToken)
+        │
+        ▼
+Tìm RefreshToken trong DB
+        │
+        ├── Không có → 401
+        │
+        ├── revoked → 401
+        │
+        ├── expired → 401
+        │
+        ▼
+     hợp lệ
+        │
+        ▼
+Tạo Access Token mới
+        │
+        ▼
+Client tiếp tục gọi API
+
 * [ ] Store token/session
 * [ ] Token rotation
 * [ ] Logout/revoke

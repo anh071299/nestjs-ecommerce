@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { CreateUserDto } from './dto/create-user.dto.js';
 import { UserRepository } from './user.repository.js';
 import type { User } from './user.types.js';
@@ -25,4 +25,6 @@ export class UserService {
   findByEmail(email: string): Promise<User | null> {
     return this.users.findByEmail(email);
   }
+
+
 }

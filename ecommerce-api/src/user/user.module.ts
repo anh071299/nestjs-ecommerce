@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { UserController } from './user.controller.js';
 import { UserRepository } from './user.repository.js';
 import { UserService } from './user.service.js';
-import { UserController } from './user.controller.js';
 
 @Module({
   imports: [PrismaModule],
