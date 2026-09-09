@@ -11,7 +11,7 @@ model User {
   email     String   @unique
   password  String
   name      String
-  role      UserRole @default(USER)
+  role      Role @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   refreshToken RefreshToken[]
@@ -30,7 +30,44 @@ model RefreshToken {
   @@map("refresh_token")
 }
 
-enum UserRole {
+model Product {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  description String
+  productVariant ProductVariant[]
+  categoryId String?   @db.Uuid
+  category Category? @relation(fields: [categoryId], references: [id],  onUpdate: Cascade)
+  @@index([categoryId])
+  @@map("product")
+}
+
+model Category{
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product Product[]
+  @@map("category")
+}
+
+model ProductVariant{
+  id        String   @id @default(uuid()) @db.Uuid
+  productId String   @db.Uuid
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  price     Decimal @db.Decimal(12, 2)
+  stock     Int
+  sku       String   @unique
+  @@index([productId])
+  @@map("product_variant")
+}
+
+enum Role {
   USER
   ADMIN
 }

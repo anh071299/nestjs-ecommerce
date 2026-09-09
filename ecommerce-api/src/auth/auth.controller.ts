@@ -7,6 +7,7 @@ import { loginSchema, type LoginDto } from './dto/login.dto.js';
 import { JwtGuard } from './guard/jwt.guard.js';
 import { Public } from './decorators/public.decorator.js';
 import { type RefreshTokenDto, refreshTokenSchema } from './dto/refresh-token.dto.js';
+import { RegisterDto, registerSchema } from './dto/register.dto.js';
 
 @Controller('auth')
 export class AuthController {
@@ -14,6 +15,12 @@ export class AuthController {
     @Post('login')
     async login(@Body({ schema: loginSchema }) loginDto: LoginDto) {
         return await this.authService.login(loginDto.email, loginDto.password);
+    }
+
+    @Post('register')
+    @Public()
+    async register(@Body({ schema: registerSchema }) registerDto: RegisterDto) {
+        return await this.authService.register(registerDto.email, registerDto.password, registerDto.confirmPassword, registerDto.name);
     }
 
     @Get('me')

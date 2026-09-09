@@ -1,5 +1,4 @@
-import { forwardRef, Module } from '@nestjs/common';
-import { AuthModule } from '../auth/auth.module.js';
+import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { UserController } from './user.controller.js';
 import { UserRepository } from './user.repository.js';

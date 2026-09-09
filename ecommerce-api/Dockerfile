@@ -12,7 +12,7 @@ COPY . .
 
 EXPOSE 8001
 
-CMD ["npm", "run", "start:dev"]
+CMD ["sh", "-c", "npm install && npm run start:dev"]
 
 # **Thư mục làm việc trong container** là thư mục mà Docker đặt làm **thư mục hiện tại (current directory)** để các lệnh tiếp theo chạy bên trong container.
 

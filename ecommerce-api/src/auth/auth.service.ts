@@ -1,9 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UserService } from '../user/user.service.js';
+import { Role, ROLES, ROLES_KEY } from './decorators/role.decorator.js';
 
 const REFRESH_TOKEN_EXPIRATION_TIME = 7 * 24 * 60 * 60 * 1000;
 const ACCESS_TOKEN_EXPIRATION_TIME: JwtSignOptions['expiresIn'] = '15m';
@@ -31,6 +32,19 @@ export class AuthService {
         }
 
         return { accessToken, refreshToken: refreshToken.token };
+    }
+
+    async register(email: string, password: string, confirmPassword: string, name: string) {
+        if (password !== confirmPassword) {
+            throw new BadRequestException('Passwords do not match');
+        }
+        const user = await this.userService.findByEmail(email);
+        if (user) {
+            throw new BadRequestException('User already exists');
+        }
+        const hashedPassword = await argon2.hash(password);
+        await this.userService.create({ email, password: hashedPassword, name, role: 'USER'});
+        return { message: 'User registered successfully' };
     }
 
     async refreshToken(refreshToken: string) {
